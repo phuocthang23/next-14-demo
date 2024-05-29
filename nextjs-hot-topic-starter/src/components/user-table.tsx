@@ -1,42 +1,105 @@
 "use client";
-import React from "react";
-import { Space, Table } from "antd";
+import React, { useEffect, useState } from "react";
+import { Table, Popconfirm } from "antd";
 import type { TableProps } from "antd";
 import { IUser } from "@/types/user";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { PlusOutlined, DeleteTwoTone, EditTwoTone } from "@ant-design/icons";
+// import CreateUser from "./create.user";
+// import UpdateUser from "./update.user";
 
-const columns: TableProps<IUser>["columns"] = [
-  {
-    title: "No.",
-    dataIndex: "id",
-    key: "id",
-  },
-  {
-    title: "Name",
-    dataIndex: "name",
-    key: "name",
-  },
-  {
-    title: "Email",
-    dataIndex: "email",
-    key: "email",
-  },
+interface IProps {
+  users: IUser[] | [];
+  meta: {
+    current: number;
+    pageSize: number;
+    total: number;
+  };
+}
 
-  {
-    title: "Action",
-    key: "action",
-    render: (_) => (
-      <Space size="middle">
-        <a>Invite </a>
-        <a>Delete</a>
-      </Space>
-    ),
-  },
-];
-
-const UserTable: React.FC<{ users: IUser[] }> = ({ users }) => {
+const UserTable: React.FC<IProps> = (props) => {
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const { replace } = useRouter();
+  const [isFetching, setIsFetching] = useState<boolean>(false);
+
+  const { users, meta } = props;
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState<boolean>(false);
+  const [dataUpdate, setDataUpdate] = useState<any>(null);
+
+  useEffect(() => {
+    if (users) setIsFetching(false);
+  }, [users]);
+
+  const columns: TableProps<IUser>["columns"] = [
+    {
+      title: "No.",
+      dataIndex: "id",
+      key: "id",
+    },
+    {
+      title: "Name",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
+    },
+
+    {
+      title: "Actions",
+      align: "center",
+      render: (text, record, index) => {
+        return (
+          <>
+            <EditTwoTone
+              twoToneColor="#f57800"
+              style={{ cursor: "pointer", margin: "0 20px" }}
+              onClick={() => {
+                setIsUpdateModalOpen(true);
+                setDataUpdate(record);
+              }}
+            />
+
+            <Popconfirm
+              placement="leftTop"
+              title={"Xác nhận xóa user"}
+              description={"Bạn có chắc chắn muốn xóa user này ?"}
+              onConfirm={() => handleDeleteUser(record)}
+              okText="Xác nhận"
+              cancelText="Hủy"
+            >
+              <span style={{ cursor: "pointer" }}>
+                <DeleteTwoTone twoToneColor="#ff4d4f" />
+              </span>
+            </Popconfirm>
+          </>
+        );
+      },
+    },
+  ];
+
+  const handleDeleteUser = async (user: any) => {
+    await handleDeleteUserAction({ id: user.id });
+  };
+
+  const renderHeader = () => {
+    return (
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <span>Table List Users</span>
+        <Button
+          icon={<PlusOutlined />}
+          type="primary"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
+          Thêm mới
+        </Button>
+      </div>
+    );
+  };
 
   const handlePagination = (
     pagination: any,
@@ -57,12 +120,12 @@ const UserTable: React.FC<{ users: IUser[] }> = ({ users }) => {
       <Table
         rowKey={"id"}
         columns={columns}
+        loading={isFetching}
+        bordered
         dataSource={users}
         onChange={handlePagination}
         pagination={{
-          current: 1,
-          pageSize: 10,
-          total: users.length,
+          ...meta,
           showTotal: (total, range) => {
             return (
               <div>
@@ -73,6 +136,17 @@ const UserTable: React.FC<{ users: IUser[] }> = ({ users }) => {
           },
         }}
       />
+      {/* <CreateUser
+        isCreateModalOpen={isCreateModalOpen}
+        setIsCreateModalOpen={setIsCreateModalOpen}
+      />
+
+      <UpdateUser
+        isUpdateModalOpen={isUpdateModalOpen}
+        setIsUpdateModalOpen={setIsUpdateModalOpen}
+        dataUpdate={dataUpdate}
+        setDataUpdate={setDataUpdate}
+      /> */}
     </div>
   );
 };
